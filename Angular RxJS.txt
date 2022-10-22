@@ -1,0 +1,203 @@
+RxJS:
+	-> RxJS is a library for reactive programming using Observables, to make it easier to compose asynchronous or callback-based code. This project is a rewrite 
+	   of Reactive-Extensions/RxJS with better performance, better modularity, better debuggable call stacks, 
+	   while staying mostly backwards compatible, with some breaking changes that reduce the API surface
+
+	-observable 	-> collection of events or values emiited over time
+				-> example: variable$ = Observable<Products[]> | undefined;
+
+	-observer 		-> observes notifications from the Observable(next, error, complete)
+
+	-subscriber 	-> an observer that can unsubscribe
+
+	-subscription 	-> tells the Observable that the subscriber is ready for notifications
+
+	-async pipe 	-> subscribes to the Observable when component is initialized, returns each emitted value
+				-> when a new item is emitted component is marked to be checked for
+				  changes
+					 -> angular change detection
+				-> unsubscribes when component is destroyed
+				-> benefits:
+					-> no need to subscribe or unsubscribe
+					-> improve change detection	
+						-> angular uses CHANGE DETECTION to track changes to application data so that it knows when to update the UI
+
+
+	-Observable from the point of view of the subscriber
+		-an Observable is read only
+		-Subscribe to react to its notifications
+		-can't emit anything into it
+			-> only the creator of the Observable can emit items into it
+		-reacting to actions
+			-> create an action stream(Subject/BehaviourSubject)
+			-> combine the action stream and data stream to react to each emission from the action stream
+			-> emit a value to the action stream when an action occurs
+
+	-a !!!Subject!!! is a special type of Observable that implements the Observer interface
+		-a special type of Observable that is
+			-an Observable
+			-an Observer
+		-call next() to emit items
+		-subject is multicast
+		-Behaviour Subject is a special type of Subject
+			-buffers its last emitted value
+			-emitts that value to any late subscribers
+			-requires a default value
+			-emitts that default value if it hasn't yet emitted any items
+
+	-change detection strategies:
+		-> Default
+			-> uses the default checkAlways strategy
+			-> every component is checked when any change is detected
+		-> OnPush
+			-> improves performance by minimalizing change detection cycles
+			-> component is only checked when
+				-> @Input properties change
+				-> events emits
+				-> a bound Observable emits
+
+	-handling observable errors  	-> catch Observable errors, error stops the Observable, 
+						-> it won't emit any more items
+						-> we can't use it anymore
+						-> solution example:
+							-> catch the error -> operator catchError
+								-> catches any error that occour on an Observable
+								-> example: catchError(this.handleError)
+								-> must be after any opeator that could generate an error
+								-> used for catching errors
+								-> in the error handler
+									-> rethrow the error
+									-> replace the errored Observable to continue after an error occurs
+							-> optionally rethrow the error -> creation function throwError
+								-> creates and Observable that emits no items
+								-> immediately emits an error notification
+								-> example throwError(() => err)
+								-> used for propagating an error or use to throw statement
+							-> replace the errored Observable with a new Observable -> constant EMPTY 
+								-> an Observable that emits no items
+								-> return EMPTY
+								-> immediately emits a complete notification
+								-> used for returning an empty Observable
+
+	-updating data:
+		
+		let the backend handle it			|	let our Observable handle it
+			-treat the data as read-only		|		-define an action for update operations on each update
+			-issue a PUT, POST or DELETE		|		-issue a PUT, POST or DELETE
+			-GET to get the current data		|		-incorporate the change
+			-could have performance impacts	|		-UI automatically updates
+
+
+	-caching Observables
+		-improves responsiveness
+		-reduces bandwith and network consumption
+		-reduces backend server load
+		-reduces redudant computations
+
+	
+	-combining data streams
+		
+		Get it All						Just in Time
+			-declarative pattern	|			-more complex code
+			-combine streams		|			-higher-order mapping operators
+			-displays instantly	|			-display delay
+			-gets all data		|			-only retrives required data
+
+
+	-RxJS Operators 	-> over 100 RxJS operators
+				-> pipe emitted items through a sequence of operators
+				-> an operator subscribes to its input Observable and creates an output Observable
+		-filter
+			-> filtering emitted items
+			-> filter is a transformation operator
+				-subscribes to its input Observable
+				-creates an output Observable
+			-> when an item is emitted
+				-item is evaluated as specified by the provided function
+				-if the evaluation returns true, item is emitted to the output Observable
+
+		-startWith
+			-> combination operator
+				-subscribes to its input Observable
+				-creates an output Observable
+				-when subscribed, synchronously emits all provided values
+			-> when an item is emitted
+				-item is emitted to the output Observable
+			-> initial value(s) must be the same type as the input Observable emissions
+
+		-scan
+			-> transformation operator
+				-subscribes to its input Observable
+				-creates an output Observable
+				-accumulates items in an Observable
+				-for each emitted item
+				-> the accumulator function is applied
+				-> the result is buffered and emitted
+				-used for
+				-> encapsulating and managing state
+				-> totaling amouts
+				-> accumulating items into an array
+			-> seed if defined is used as initial state
+		
+		-shareReplay
+			-> multicast operator
+			-> returns a Subject that shares a single subscription to the underlying source
+			-> takes in an optional buffer size, which is the number of items cached and replayed
+			-> on a subscribe, it replays the specified number of emissions
+			-> the items stays cached forever, even after there are no more subscribers
+
+		-share
+			-> by default doesn't have a buffer
+			-> doesn't replay that buffer
+
+		-contactMap
+			-> transformation operator
+				-subscribes to its input Observable
+				-creates an output Observable
+			-> when an item is emitted, it's queued
+				-item is mapped to an inner Observable as specified by the provided function
+				-subscribes to the inner Observable
+				-waits
+				-inner Observable emissions are concatenated to the output Observable
+				-when the inner Observable completes, processes the next item
+			-> use:
+				-to wait for the prior Observable to complete before starting the next one
+				-to process items in sequence
+				-get data or update data in sequence
+		
+		-mergeMap (flatMap)
+			-> transformation operator
+				-subscribes to its input Observable
+				-creates an output Observable
+			-> when each item is emitted
+				-item is mapped to an inner Observable as specified by a provided function
+				-subscribes to the inner Observable
+				-inner Observable emissions are merged to the output Observable
+			-> use:
+				-to process in parallel
+				-when order doesn't matter
+
+		-switchMap
+			-> transformation operator
+				-subscribes to its input Observable
+				-creates an output
+			-> when an item is emitted
+				-item is mapped to an inner Observable as specified by the provided function
+				-switches to this inner Observable
+					-unsubscribes from any prior inner Observable
+					-subscribes to the new inner Observable
+				-inner Observable emissions are merged to the output Observable
+			-> use:
+				-to stop any prior Observable before switching to the enxt one
+					-type ahead or auto completion
+					-user selection from a list 
+			
+	-RxJS function
+		-merge
+			-> combination function
+				-takes in a set of Observables, subscribes
+				-creates an output Observable
+			-> when an item is emitted from any Observable
+				-item is emitted to the output Observable
+			-> completes when all input Observables complete
+			
